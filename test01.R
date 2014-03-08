@@ -4,7 +4,7 @@ db.connect(port = 5333, dbname = "madlib")
 
 source("perftest.R")
 
-ts <- arima.sim(list(order = c(2,0,1), ar = c(0.7, -0.3), ma=0.2), n = 100000) + 3.2
+ts <- arima.sim(list(order = c(2,0,1), ar = c(0.7, -0.3), ma=0.2), n = 1000000) + 3.2
 
 dat <- data.frame(tid = 1:length(ts), tval = ts)
 

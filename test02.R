@@ -1,4 +1,17 @@
-source("perftest.R")
+library(PivotalR)
+db.connect(port = 5333, dbname = "madlib")
+
+## Create a simulated time series and put it into the database
+ts <- arima.sim(list(order = c(2,0,1), ar = c(0.7, -0.3), ma=0.2),
+                n = 1000000) + 3.2
+dat <- data.frame(tid = 1:length(ts), tval = ts)
+delete('arima_data')
+as.db.data.frame(dat, "arima_data",
+                 field.types=list(tid="integer", tval="double precision"))
+
+## ----------------------------------------------------------------------
+
+source("perftest.R") # load performance testing functions
 
 perf <- run.test(
     sql = "
@@ -18,6 +31,8 @@ perf <- run.test(
         chunk_size = c(1000, 10000, 20000, 30000),
         max_iter = c(10, 20)),
     extra = "iter_num",
-    port = 5333, dbname = "madlib")
+    port = 5333, dbname = "madlib", # database information
+    time.out = 10 # cancel the query if it takes more than 10 sec
+    )
 
 perf
