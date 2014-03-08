@@ -39,8 +39,11 @@ library(fork)
 {
     pid = fork(slave=NULL)
     if(pid==0) {
-        cat("Hi from the child process\n"); exit()
+        cat("Hi from the child process\n")
+        db.list()
+        exit()
     } else {
-        cat("Hi from the parent process\n");
+        cat("Hi from the parent process\n")
+        db.list()
     }
 }
