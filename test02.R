@@ -30,9 +30,9 @@ perf <- run.test(
     (
         chunk_size = c(1000, 10000, 20000, 30000),
         max_iter = c(10, 20)),
-    extra = "iter_num",
+    fetch.result = "iter_num",
     port = 5333, dbname = "madlib", # database information
-    time.out = 10 # cancel the query if it takes more than 10 sec
+    time.out = 5 # cancel the query if it takes more than 5 sec
     )
 
 perf
