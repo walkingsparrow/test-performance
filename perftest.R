@@ -74,6 +74,7 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
     cid <- db.connect(host=host, user=user, dbname=dbname, port=port,
                       password=password, madlib=madlib,
                       default.schemas=default.schemas, verbose=FALSE)
+
     pid <- as.integer(db.q("select pg_backend_pid()",
                            conn.id = cid, verbose = FALSE))
 
