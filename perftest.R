@@ -47,7 +47,7 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
     readChild <- parallel:::readChild
     sendChildStdin <- parallel:::sendChildStdin
 
-    check.interval <- 1
+    check.interval <- 3
 
     if (!is.data.frame(params))
         stop("params must be a data.frame!")
