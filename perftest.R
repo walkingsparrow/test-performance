@@ -45,10 +45,11 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
 
     check.interval <- {
         if (time.out > 100)
-            100
+            60
         else if (time.out > 10)
             10
-        else 1
+        else
+            1
     }
 
     if (!is.data.frame(params))
@@ -65,9 +66,9 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
 
     added.fetch.result <- FALSE
 
-    has.fetch.result <- !(missing(fetch.result) || length(fetch.result) == 0 ||
-                          is.null(fetch.result) || is.na(fetch.result) ||
-                          all(fetch.result == ""))
+    has.fetch.result <- missing(fetch.result) || !(
+        length(fetch.result) == 0 || is.null(fetch.result) ||
+        is.na(fetch.result) || all(fetch.result == ""))
 
     suppressMessages(library(PivotalR))
     cid <- db.connect(host=host, user=user, dbname=dbname, port=port,
@@ -131,15 +132,20 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
                 if (is(run, "try-error")) {
                     res$error[i] <- attr(run, "condition")$message
                     if (grepl("canceling statement due to user request",
+                              res$error[i]) ||
+                        grepl("The backend raised an exception",
                               res$error[i])) {
                         time[i] <- elapsed
                         is.time.out[i] <- TRUE
-                    } else
+                    } else {
                         time[i] <- NA
+                    }
                 } else {
                     ## have not created fetch.result results
                     if (!added.fetch.result) {
                         if (has.fetch.result) {
+                            if (missing(fetch.result))
+                                fetch.result <- names(run)
                             for (k in seq_along(fetch.result)) {
                                 tmp <- rep(run[1,fetch.result[k]], n)
                                 tmp[seq_len(i-1)] <- NA
@@ -162,7 +168,8 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
     }
 
     db.disconnect(conn.id = cid, verbose = FALSE)
-    if(has.fetch.result) res[is.na(time) | is.time.out, fetch.result] <- NA
+    if(has.fetch.result && added.fetch.result)
+        res[is.na(time) | is.time.out, fetch.result] <- NA
     res <- cbind(res, "time (sec)" = time, time.out = is.time.out)
     names(res)[ncol(res)] <- paste("time out (>~", time.out, " sec)", sep = "")
     res
