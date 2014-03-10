@@ -28,6 +28,58 @@ get.pid.col <- function(cid)
 
 ## ----------------------------------------------------------------------
 
+colourise <- function (text, fg = "black", bg = NULL)
+{
+    term <- Sys.getenv()["TERM"]
+    colour_terms <- c("xterm-color", "xterm-256color", "screen",
+        "screen-256color")
+    if (!any(term %in% colour_terms, na.rm = TRUE)) {
+        return(text)
+    }
+    col_escape <- function(col) {
+        paste0("\033[", col, "m")
+    }
+    col <- .fg_colours[tolower(fg)]
+    if (!is.null(bg)) {
+        col <- paste0(col, .bg_colours[tolower(bg)], sep = ";")
+    }
+    init <- col_escape(col)
+    reset <- col_escape("0")
+    paste0(init, text, reset)
+}
+
+.fg_colours <- c(
+  "black" = "0;30",
+  "blue" = "0;34",
+  "green" = "0;32",
+  "cyan" = "0;36",
+  "red" = "0;31",
+  "purple" = "0;35",
+  "brown" = "0;33",
+  "light gray" = "0;37",
+  "dark gray" = "1;30",
+  "light blue" = "1;34",
+  "light green" = "1;32",
+  "light cyan" = "1;36",
+  "light red" = "1;31",
+  "light purple" = "1;35",
+  "yellow" = "1;33",
+  "white" = "1;37"
+)
+
+.bg_colours <- c(
+  "black" = "40",
+  "red" = "41",
+  "green" = "42",
+  "brown" = "43",
+  "blue" = "44",
+  "purple" = "45",
+  "cyan" = "46",
+  "light gray" = "47"
+)
+
+## ----------------------------------------------------------------------
+
 ## sql -- SQL query to run
 ## params -- A data.frame that contains all parameters. order does not matter
 ## fetch.result -- fetch.result result values that you want to record
@@ -50,9 +102,9 @@ run.test <- function(sql, params, history, fetch.result,
 
     check.interval <- {
         if (time.out > 60)
-            60
-        else if (time.out > 10)
             10
+        else if (time.out > 10)
+            5
         else
             1
     }
@@ -127,6 +179,7 @@ run.test <- function(sql, params, history, fetch.result,
                     db.q("select pg_cancel_backend(", pid, ")",
                          conn.id = cid1, verbose = FALSE)
                     mckill(prcs, signal = 9)
+                    stop("Performance tests are interrupted!")
                 },
                 finally = {
                     mckill(prcs, signal = 9)
@@ -148,6 +201,9 @@ run.test <- function(sql, params, history, fetch.result,
             sendMaster(pid)
             tryCatch({
                 for (i in seq_len(n)) {
+                    cat(paste(names(params), "=", params[i,],
+                              collapse = ", ", sep = ""), "...... ")
+
                     elapsed <- system.time(run <- try(
                         db.q(format.str(sql, params[i, , drop=FALSE]),
                              conn.id = cid, verbose = FALSE, nrows = -1),
@@ -157,7 +213,8 @@ run.test <- function(sql, params, history, fetch.result,
                     Sys.sleep(1)
 
                     if (is(run, "try-error")) {
-                        res$test_error[i] <- attr(run, "condition")$message
+                        res$test_error[i] <- gsub(
+                            "(\n|,)", " ", attr(run, "condition")$message)
                         if (grepl("canceling statement due to user request",
                                   res$test_error[i]) ||
                             grepl("The backend raised an exception",
@@ -167,8 +224,26 @@ run.test <- function(sql, params, history, fetch.result,
                         } else {
                             time[i] <- NA
                         }
+
+                        if (is.na(time[i])) err.str <- "Error"
+                        else err.str <- "Timeout"
+
+                        if (!missing(history)) {
+                            history.time <- history[i, ncol(history)-1]
+                            history.timeout <- history[i, ncol(history)]
+                            if (is.na(history.time)) {
+                                cat(colourise(paste(err.str, " (and baseline raises an error)\n", sep = ""), "red"))
+                            } else if (history.timeout) {
+                                cat(colourise(paste(err.str, " (and baseline fails due to timeout)\n", sep = ""), "red"))
+                            } else {
+                                cat(colourise(paste(err.str, " (but baseline is fine)\n", sep = ""), "red"))
+                            }
+                        } else {
+                            cat(colourise(paste(err.str, "\n", sep = ""), "red"))
+                        }
                     } else {
                         ## have not created fetch.result results
+
                         if (!added.fetch.result) {
                             if (has.fetch.result) {
                                 if (missing(fetch.result))
@@ -189,22 +264,25 @@ run.test <- function(sql, params, history, fetch.result,
 
                         if (!missing(history)) {
                             history.time <- history[i, ncol(history)-1]
-                            cat(paste(names(params), "=", params[i,],
-                                      collapse = ", "), "...... ")
                             if (time[i] < history.time*(1-compare.threshold)) {
-                                cat(format((1-history.time/time[i])*100,
-                                           digits=2),
-                                    "% better\n", sep = "")
+                                cat(colourise(paste(
+                                    format((1-time[i]/history.time)*100,
+                                           digits=2, width=4),
+                                    "% better\n", sep = ""), "green"))
                             } else if (time[i] > history.time*
-                                       (1 - compare.threshold)) {
-                                cat(format((history.time/time[i]-1)*100,
-                                           digits=2),
-                                    "% worse\n", sep = "")
+                                       (1 + compare.threshold)) {
+                                cat(colourise(paste(
+                                    format((time[i]/history.time-1)*100,
+                                           digits=2, width=4),
+                                    "% worse\n", sep = ""), "red"))
                             } else {
-                                cat("similar within ",
+                                cat(colourise(paste(
+                                    "similar within ",
                                     format(compare.threshold*100, digits=2),
-                                    "%\n", sep = "")
+                                    "%\n", sep = ""), "yellow"))
                             }
+                        }  else {
+                            cat("Done\n")
                         }
                     }
                 }

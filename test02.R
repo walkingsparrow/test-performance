@@ -36,3 +36,8 @@ perf <- run.test(
     )
 
 perf
+
+## ----------------------------------------------------------------------
+
+a <- tryCatch(Sys.sleep(100), interrupt = function(s) stop("interrupted"),
+         finally = {print("OK")})

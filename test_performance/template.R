@@ -8,7 +8,8 @@ dbname <- args[3]
 
 create.baseline <- as.logical(args[4])
 if (is.na(create.baseline))
-    stop("")
+    stop("Use 'true' or 'false' to indicate whether to ",
+         "create (or compare with) the baseline file !")
 
 script.name <- args[1]
 
@@ -17,16 +18,23 @@ source(script.name)
 ## re-order the parameters, so that
 ## change of order does not raise an error when comparing
 ## with baseline file
-params <- eval(parse(
+params <- data.frame(eval(parse(
     text = paste("params[with(params, order(",
-    paste(names(params), collapse = ","), ")),]")))
+    paste(names(params), collapse = ","), ")),]"))))
+row.names(params) <- 1:nrow(params)
 
-message("Start the performance testing of ", script.name, " ...")
+baseline <- paste(sub("(\\.r$|\\.R$)", "", script.name), "_baseline.csv",
+                  sep = "")
+result <- paste(sub("(\\.r$|\\.R$)", "", script.name), "_result.csv",
+                sep = "")
 
-baseline <- paste("baseline_", sub("(\\.r$|\\.R$)", "", script.name), ".csv",
-                  sep = "")
-result <- paste("result_", sub("(\\.r$|\\.R$)", "", script.name), ".csv",
-                  sep = "")
+if (!create.baseline) {
+    compare.str <- paste(", compared with baseline ", baseline, sep = "")
+} else {
+    compare.str <- ""
+}
+
+message("Start the performance testing of ", script.name, compare.str, " ...")
 
 if (!create.baseline) { # use baseline file
     history <- read.csv(baseline)
