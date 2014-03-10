@@ -32,7 +32,8 @@ get.pid.col <- function(cid)
 ## params -- A data.frame that contains all parameters. order does not matter
 ## fetch.result -- fetch.result result values that you want to record
 ## cid -- database connection ID
-run.test <- function(sql, params, fetch.result, time.out = 3600,
+run.test <- function(sql, params, history, fetch.result,
+                     compare.threshold = 0.1, time.out = 3600,
                      host = "localhost", user = Sys.getenv("USER"),
                      dbname = user, password = "", port = 5432,
                      madlib = "madlib", default.schemas = NULL)
@@ -61,9 +62,9 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
 
     n <- nrow(params)
     res <- data.frame(
-        id = seq_len(n),
+        test_id = seq_len(n),
         params,
-        error = character(n), stringsAsFactors = FALSE)
+        test_error = character(n), stringsAsFactors = FALSE)
 
     time <- numeric(n)
     is.time.out <- logical(n)
@@ -184,13 +185,33 @@ run.test <- function(sql, params, fetch.result, time.out = 3600,
                                 res[i,fetch.result] <- run[1,fetch.result]
                         }
                         time[i] <- elapsed
+
+                        if (!missing(history)) {
+                            history.time <- history[i, ncol(history)-1]
+                            cat(paste(names(params), "=", params[i,],
+                                      collapse = ", "), "...... ")
+                            if (time[i] < history.time*(1-compare.threshold)) {
+                                cat(format((1-history.time/time[i])*100,
+                                           digits=2),
+                                    "% better\n", sep = "")
+                            } else if (time[i] > history.time*
+                                       (1 - compare.threshold)) {
+                                cat(format((history.time/time[i]-1)*100,
+                                           digits=2),
+                                    "% worse\n", sep = "")
+                            } else {
+                                cat("similar within ",
+                                    format(compare.threshold*100, digits=2),
+                                    "%\n", sep = "")
+                            }
+                        }
                     }
                 }
 
                 if(has.fetch.result && added.fetch.result)
                     res[is.na(time) | is.time.out, fetch.result] <- NA
                 res <- cbind(res, "time (sec)" = time, time.out = is.time.out)
-                names(res)[ncol(res)] <- paste("time out (>~", time.out, " sec)",
+                names(res)[ncol(res)] <- paste("timeout (>~", time.out, " sec)",
                                                sep = "")
                 sendMaster(res)
                 capture.output(readline(), file = "/dev/null")
