@@ -66,4 +66,10 @@ if (!create.baseline) { # use baseline file
     write.csv(perf, baseline, quote = FALSE, row.names = FALSE)
 }
 
-message("The performance testing of ", script.name, " is done.\n")
+if (create.baseline) {
+    base.str <- paste("\nBaseline file ", result, " has been created.", sep = "")
+} else {
+    base.str <- ""
+}
+
+message("The performance testing of ", script.name, " is done.", base.str, "\n")
