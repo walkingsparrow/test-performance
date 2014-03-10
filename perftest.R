@@ -109,7 +109,8 @@ run.test <- function(sql, params, history, fetch.result,
                         pid.col, " = ", pid, sep = " ",
                         conn.id = cid1, verbose = FALSE, nrows = -1)
 
-                    if (activity$elapsed > time.out)
+                    if (!is.null(activity$elapsed) &&
+                        activity$elapsed > time.out)
                         db.q("select pg_cancel_backend(", pid, ")",
                              conn.id = cid1, verbose = FALSE)
 
@@ -156,11 +157,11 @@ run.test <- function(sql, params, history, fetch.result,
                     Sys.sleep(1)
 
                     if (is(run, "try-error")) {
-                        res$error[i] <- attr(run, "condition")$message
+                        res$test_error[i] <- attr(run, "condition")$message
                         if (grepl("canceling statement due to user request",
-                                  res$error[i]) ||
+                                  res$test_error[i]) ||
                             grepl("The backend raised an exception",
-                                  res$error[i])) {
+                                  res$test_error[i])) {
                             time[i] <- elapsed
                             is.time.out[i] <- TRUE
                         } else {
@@ -211,8 +212,8 @@ run.test <- function(sql, params, history, fetch.result,
                 if(has.fetch.result && added.fetch.result)
                     res[is.na(time) | is.time.out, fetch.result] <- NA
                 res <- cbind(res, "time (sec)" = time, time.out = is.time.out)
-                names(res)[ncol(res)] <- paste("timeout (>~", time.out, " sec)",
-                                               sep = "")
+                names(res)[ncol(res)] <- paste("timeout (>~", time.out,
+                                               " sec)", sep = "")
                 sendMaster(res)
                 capture.output(readline(), file = "/dev/null")
             },

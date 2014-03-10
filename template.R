@@ -2,6 +2,18 @@
 
 source("perftest.R") # load performance testing functions
 
+args <- commandArgs(TRUE)
+port <- as.integer(args[2])
+dbname <- args[3]
+
+create.baseline <- as.logical(args[4])
+if (is.na(create.baseline))
+    stop("")
+
+script.name <- args[1]
+
+source(script.name)
+
 ## re-order the parameters, so that
 ## change of order does not raise an error when comparing
 ## with baseline file
@@ -9,19 +21,13 @@ params <- eval(parse(
     text = paste("params[with(params, order(",
     paste(names(params), collapse = ","), ")),]")))
 
-args <- commandArgs(TRUE)
-port <- as.integer(args[1])
-dbname <- args[2]
-
-create.baseline <- args[3]
-script.name <- sub(".*=", "", commandArgs()[4])
-
 message("Start the performance testing of ", script.name, " ...")
 
-baseline <- paste("baseline_", sub("\\.r$", "", script.name), ".csv",
+baseline <- paste("baseline_", sub("(\\.r$|\\.R$)", "", script.name), ".csv",
                   sep = "")
-result <- paste("result_", sub("\\.r$", "", script.name), ".csv",
+result <- paste("result_", sub("(\\.r$|\\.R$)", "", script.name), ".csv",
                   sep = "")
+
 if (!create.baseline) { # use baseline file
     history <- read.csv(baseline)
     col1 <- which(names(history) == "test_id") + 1
@@ -42,7 +48,6 @@ if (!create.baseline) { # use baseline file
 
     write.csv(perf, result, quote = FALSE, row.names = FALSE)
 } else {
-
     perf <- run.test(
         sql = sql,
         params = params,

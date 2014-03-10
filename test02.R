@@ -32,7 +32,7 @@ perf <- run.test(
         max_iter = c(10, 20)
         ),
     port = 5333, dbname = "madlib", # database information
-    time.out = 10 # cancel the query if it takes more than 5 sec
+    time.out = 3600 # cancel the query if it takes more than 5 sec
     )
 
 perf

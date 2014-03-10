@@ -6,4 +6,10 @@
 # $3 - string, database name
 # $4 - logical, whether to create baseline
 
-for (i in `ls $1`)
+n=1
+for i in `ls $1`
+do
+    echo $n.
+    Rscript template.R $i $2 $3 $4
+    n=$[n+1]
+done
