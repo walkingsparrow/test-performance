@@ -20,7 +20,7 @@ source(script.name)
 ## with baseline file
 params <- data.frame(eval(parse(
     text = paste("params[with(params, order(",
-    paste(names(params), collapse = ","), ")),]"))))
+    paste(names(params), collapse = ","), ")),,drop=FALSE]"))))
 row.names(params) <- 1:nrow(params)
 
 baseline <- paste(sub("(\\.r$|\\.R$)", "", script.name), "_baseline.csv",
