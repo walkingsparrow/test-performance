@@ -1,0 +1,9 @@
+./runme.sh file-pattern port database create_baseline?
+
+* Create the baseline
+
+./runme.sh paper_experiments/test-fig*.r 5333 madlib true
+
+* Compare with the existing baseline file
+
+./runme.sh paper_experiments/test-fig*.r 5333 madlib false

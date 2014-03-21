@@ -13,6 +13,6 @@ sql <- "
     "
 
 params <- expand.grid(
-    chunk_size = c(1000, 10000, 20000, 30000),
-    max_iter = c(10, 20)
+    chunk_size = c(1000L, 10000L, 20000L, 30000L),
+    max_iter = c(10L, 20L)
     )
